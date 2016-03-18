@@ -80,6 +80,7 @@ OCPWMHandle 	*pOCPWMHandle 		= &ocPWMHandle;
 int sumLF=0;
 int sumMF=0;
 int sumHF=0;
+int sumTOT = 0;
 
 int main(void)
 {
@@ -133,27 +134,31 @@ int main(void)
 	
 				//work in the frequency domain
 				fourierTransform(FRAME_SIZE,compX,frctAudioIn);
-			//	filterNegativeFreq(FRAME_SIZE,compXfiltered,compX);
-			for(i=0;i<42;i++){
-				sumLF = sumLF + (pow(compX[i].real,2)+pow(compX[i].imag,2)); //calculating abs value not sqrt as dont need to
+				filterNegativeFreq(FRAME_SIZE,compXfiltered,compX);
+			for(i=0;i<21;i++){
+				sumLF = sumLF + (pow(compXfiltered[i].real,2)+pow(compX[i].imag,2)); //calculating abs value not sqrt as dont need to
+				
 			}
-				for(i=42;i<84;i++){
-				sumMF = sumMF + (pow(compX[i].real,2)+pow(compX[i].imag,2));
+				for(i=21;i<42;i++){
+				sumMF = sumMF + (pow(compXfiltered[i].real,2)+pow(compX[i].imag,2));
 			}
-				for(i=84;i<128;i++){
-				sumHF = sumHF + (pow(compX[i].real,2)+pow(compX[i].imag,2));
-			}	
-			if((sumLF>2*sumMF)&&(sumLF>2*sumHF)){
+				for(i=42;i<63;i++){
+				sumHF = sumHF + (pow(compXfiltered[i].real,2)+pow(compX[i].imag,2));
+			}
+			sumTOT = sumLF + sumMF +sumHF;
+				
+		//	if(sumLF>5&&sumMF>5&&sumHF<5
+			if((sumLF/sumTOT)>(sumMF/sumTOT)&&(sumLF/sumTOT)>(sumHF/sumTOT)){
 					GREEN_LED=0;
 					RED_LED = 1;
 					YELLOW_LED=1;
 			}
-			else if((sumMF>2*sumLF)&&(sumMF>2*sumHF)){
+			else if((sumMF/sumTOT)>(sumLF/sumTOT)&&(sumMF/sumTOT)>(sumHF/sumTOT)){
 					GREEN_LED=1;
 					RED_LED = 1;
 					YELLOW_LED=0;
 			}
-			else if((sumHF>2*sumLF)&&(sumHF>2*sumMF)){
+			else if((sumLF/sumTOT)>(sumHF/sumTOT)&&(sumLF/sumTOT)>(sumMF/sumTOT)){
 					GREEN_LED=1;
 					RED_LED = 0;
 					YELLOW_LED=1;
