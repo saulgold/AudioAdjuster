@@ -134,8 +134,8 @@ section                    address      alignment gaps    total length  (dec)
 .ybss                       0x3744                   0            0xbc  (188)
 .ybss                       0x3800                   0           0x200  (512)
 .ybss                       0x3a00                   0           0xa00  (2560)
-_02d4585056ec214a           0x4400                   0           0x200  (512)
-_02d4570056ec214a           0x4600                   0           0x200  (512)
+_02d4385056ec281f           0x4400                   0           0x200  (512)
+_02d4370056ec281f           0x4600                   0           0x200  (512)
 
                         Total data memory used (bytes):         0x2250  (8784) 53%
 
@@ -1889,15 +1889,15 @@ LOAD default_isr
 .const              0x975c          0x4
  .const             0x975c          0x4 ex_sask_led.o
 
-_02d4570056ec214a
+_02d4370056ec281f
                     0x4600        0x200
- _02d4570056ec214a
+ _02d4370056ec281f
                     0x4600        0x200 main.o
                     0x4600                  adcBuffer
 
-_02d4585056ec214a
+_02d4385056ec281f
                     0x4400        0x200
- _02d4585056ec214a
+ _02d4385056ec281f
                     0x4400        0x200 main.o
                     0x4400                  ocPWMBuffer
 
