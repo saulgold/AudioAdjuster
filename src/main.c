@@ -25,6 +25,7 @@
 #include <ADCChannelDrv.h>
 #include <OCPWMDrv.h>
 
+
 #include "..\inc\filter.h"
 #include "..\inc\modulate.h"
 #include "..\inc\complexmultiply.h"
@@ -64,10 +65,9 @@ fractcomplex compXshifted[FRAME_SIZE]__attribute__ ((space(ymemory),far));
 
 //variables for audio processing
 fractional		frctAudioIn			[FRAME_SIZE]__attribute__ ((space(xmemory),far));
-fractional		frctAudioWorkSpace	[FRAME_SIZE]__attribute__ ((space(ymemory),far));
+
 fractional		frctAudioOut		[FRAME_SIZE]__attribute__ ((space(xmemory),far));
-fractcomplex	compAudioOut		[FRAME_SIZE]__attribute__ ((space(xmemory),far));
-fractcomplex	compCarrierSignal	[FRAME_SIZE]__attribute__ ((space(ymemory),far));
+
 
 //Instantiate the drivers
 ADCChannelHandle adcChannelHandle;
@@ -77,10 +77,7 @@ OCPWMHandle 	ocPWMHandle;
 ADCChannelHandle *pADCChannelHandle 	= &adcChannelHandle;
 OCPWMHandle 	*pOCPWMHandle 		= &ocPWMHandle;
 
-int sumLF=0;
-int sumMF=0;
-int sumHF=0;
-int sumTOT = 0;
+
 
 int main(void)
 {
@@ -121,7 +118,11 @@ int main(void)
 	OCPWMStart		(pOCPWMHandle);	
 	
 	while(1)
-	{		
+	{	
+		float sumLF=0;
+		float sumMF=0;
+		float sumHF=0;
+		float sumTOT = 0;	
 //	YELLOW_LED=0;
 		
 	//	#ifndef __DEBUG_OVERRIDE_INPUT//if not in debug mode, read audio in from the ADC
@@ -135,7 +136,8 @@ int main(void)
 				//work in the frequency domain
 				fourierTransform(FRAME_SIZE,compX,frctAudioIn);
 				filterNegativeFreq(FRAME_SIZE,compXfiltered,compX);
-			for(i=0;i<21;i++){
+				
+			for(i=1;i<21;i++){
 				sumLF = sumLF + (pow(compXfiltered[i].real,2)+pow(compX[i].imag,2)); //calculating abs value not sqrt as dont need to
 				
 			}
@@ -158,7 +160,7 @@ int main(void)
 					RED_LED = 1;
 					YELLOW_LED=0;
 			}
-			else if((sumLF/sumTOT)>(sumHF/sumTOT)&&(sumLF/sumTOT)>(sumMF/sumTOT)){
+			else if((sumHF/sumTOT)>(sumLF/sumTOT)&&(sumHF/sumTOT)>(sumMF/sumTOT)){
 					GREEN_LED=1;
 					RED_LED = 0;
 					YELLOW_LED=1;
@@ -192,9 +194,9 @@ int main(void)
 			//	inverseFourierTransform(FRAME_SIZE,frctAudioOut,compXshifted);
 					
 				//Wait till the OC is available for a new frame
-		while(OCPWMIsBusy(pOCPWMHandle));	
+		//while(OCPWMIsBusy(pOCPWMHandle));	
 		//Write the real part of the frequency shifted complex audio signal to the output
-		OCPWMWrite (pOCPWMHandle,frctAudioOut,FRAME_SIZE);
+	//	OCPWMWrite (pOCPWMHandle,frctAudioOut,FRAME_SIZE);
 		
 	}
 }
