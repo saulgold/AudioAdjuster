@@ -1,0 +1,50 @@
+15/3/16
+-created project "Assignment1".
+-used code from timerdelay to test blinking LED - worked.\
+-added function initialise to include all initialisation code. - failed getting local vairable error so reverted 
+-added ADChannelDrv header and source file to attempt to read audio from the mic
+-added PWMChannelDrv head and source files
+-added releent code to read and write audi oto the mic and speaker respectively - works
+-tried reading the AudioIn variable to see what form the input was, but wouldn't work. after some fiddleing it did work.
+	but all values were 0. Reasons for this were to do with ping pong ing between the buffers or something.
+16/3/16
+-today I will try and implement FFT on the audio in.
+-copy pasted FFT code and set AudioIn to signcmp.real, builds and runs fine.
+-now trying to output FFT to csv using fopen, needed to increase heap size, so increased it to 1000 bytes arbitrarily.
+-realised that there is no point in trying to output values so abandoned idea and moved on
+-tried to follow FFT code from the manual, but learnt  valuable life lesson never to trust code from anyone, as it turned out to be bollox.
+-copied code from studyspace which was the same as what was started but cannot call the functions from the dsp.h file
+-started another branch of project (gitub) to point to all headers in the source tree instead of having them all in the porject directory.
+-this didn't work and was more complicated so abandoned branch
+-added the dsp .a files located in C:\Microchip Starter Kits\dsPIC Starter Kit - 1\MPLAB C30\lib
+ into the library section of the project, the project now builds!!!
+-tried to write own code for reading audio, but gave up...
+
+17/3/16
+-program still gets stuck in the fft function
+-tried allocatiing the audio in and twiddle factors to difference memorys (x and y). no luck
+-tride the fftComplexIP, still no luck
+-removed unused pointer and then it worked! not sure why..
+-then stopped working, after hours of playing with the memory changing allocations and attributes of maine arrays,
+	gave up
+-downlaoded audioadjuster example and delected everythign apart from the FFT function, built up code around it at the program builds and runs
+-set up simple if statement to check loudness with LEDs, seems to work
+-next step is to understand what fft values mean
+
+18/3/16
+-summed the lower middel and higher sections of the  fft to relate to low med and hig frequencies
+-insteadof doing sqrt(im^2 p+real^2) did it without sqrt as it is quicker and don't need it to do analysis
+-set up if statements which check which section of fft is highest and displays a coresponding LED.
+-dosent seem to work well with whistleing so will try with signal generator app on phone.
+-weasn't filtering the dignla so the complex conjugate was still there so the top third would be the same as the bottom third and produce false results
+-so addign the filter
+-0th real part of compxfiltered array is always bigger magnitude than the others... why?
+-put in report how i dealt with the negative frequency part of fft
+-dum values were overflowing to negative to changed int to double and it worked!
+but only between 0 and 5000Hz
+-above ~5000hz sum values get wierd (overflow or something)
+-tried doing += to calc sumHF cumLF and sumMF - no change
+-tried changing from double to unsigned
+-but the range is only meant to be 0 - 4000hz so it works!!!
+-now tried finding max abs in compxfilterted array - finding the peak freq
+-works fine now!!!

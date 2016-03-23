@@ -32,7 +32,7 @@
 #include "..\inc\transform.h"
 
 #define FRAME_SIZE 			128
-
+#define DEBUG
 //Allocate memory for input and output buffers
 fractional		adcBuffer		[ADC_CHANNEL_DMA_BUFSIZE] 	__attribute__((space(dma)));
 fractional		ocPWMBuffer		[OCPWM_DMA_BUFSIZE]		__attribute__((space(dma)));
@@ -61,13 +61,19 @@ OCPWMHandle 	ocPWMHandle;
 ADCChannelHandle *pADCChannelHandle 	= &adcChannelHandle;
 OCPWMHandle 	*pOCPWMHandle 		= &ocPWMHandle;
 
-
+float getFrequency(int samplingRate, int frameSize, int FFTPosition){
+	float frequency = (frameSize/samplingRate)*FFTPosition;
+	return frequency; 
+}
+	float testFrequency = 0;
+	
 
 int main(void)
 {
 	int i;
 
-
+	int max;
+	int maxPosition=0;
 	ex_sask_init( );
 
 	//Initialise Audio input and output function
@@ -78,14 +84,21 @@ int main(void)
 	ADCChannelStart	(pADCChannelHandle);
 	OCPWMStart		(pOCPWMHandle);	
 	
-		int max, maxPosition;
+	 testFrequency = 3000;
+	
+	
+   
+		
 	while(1)
 	{   
 		max = 0;
 		maxPosition =0;
+	
+	   testFrequency = getFrequency(8000,FRAME_SIZE,maxPosition);
+	    
 		if(SWITCH_S1==0){
 		
-			createSimpleSignal(3000, FRAME_SIZE, testSignal);
+			createSimpleSignal(testFrequency, FRAME_SIZE, testSignal);
 			RED_LED=0;
 			
 		}
