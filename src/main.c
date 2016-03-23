@@ -62,7 +62,7 @@ ADCChannelHandle *pADCChannelHandle 	= &adcChannelHandle;
 OCPWMHandle 	*pOCPWMHandle 		= &ocPWMHandle;
 
 float getFrequency(int samplingRate, int frameSize, int FFTPosition){
-	float frequency = (frameSize/samplingRate)*FFTPosition;
+	float frequency = (samplingRate/2)*(FFTPosition/64);
 	return frequency; 
 }
 	float testFrequency = 0;
@@ -87,18 +87,19 @@ int main(void)
 	 testFrequency = 3000;
 	
 	
-   
+   	max = 0;
+		maxPosition =0;
+		float freq;
 		
 	while(1)
 	{   
-		max = 0;
-		maxPosition =0;
 	
-	   testFrequency = getFrequency(8000,FRAME_SIZE,maxPosition);
+	
+	   testFrequency = getFrequency(8000,FRAME_SIZE,20);
 	    
 		if(SWITCH_S1==0){
-		
-			createSimpleSignal(testFrequency, FRAME_SIZE, testSignal);
+		freq= 4000.0 *(maxPosition/64.0);
+			createSimpleSignal(freq, FRAME_SIZE, testSignal);
 			RED_LED=0;
 			
 		}
