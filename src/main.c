@@ -2,37 +2,35 @@
 * @file		Projects\AudioAdjuster\src\main.c
 *
 * Summary:
-*         	main function for the audio adjuster project
+*         	main function for the pitch detection project
 *
 * ToDo:
 *     		none
 *
 * Originator:
-*     		Andy Watt
+*     		Saul Goldblatt
 *
 * History:
-* 			Version 1.00	20/04/2013	Andy Watt	Initial Version copied from Microchip Demo Project and modified 
-*      		Version 1.01    28/04/2013	Andy Watt	Added filter and modulate function calls 
-*      		Version 1.02    01/05/2013	Andy Watt	Added mode switching and low pass filter function calls 
-*      		Version 1.03	07/05/2013	Andy Watt	Added transform function calls
+* 			Version 1.00	18/03/2016	Saul Goldblatt	Initial Version copied from Audio adjuster project with modified directories
+*      		Version 1.01    18/03/2016	Saul Goldblatt	FFT implemented
+*      		Version 1.02    18/03/2016	Saul Goldblatt	split frequency range into thirds and uses this for bases of LED high, med, low 
+*      		Version 1.03	18/03/2016	Saul Goldblatt	Uses proper peak detection method
+*			Version 1.04	23/03/2016	Saul Goldblatt	replays the peak frequency with s1
 *
 ***************************************************************************************************/
 #include <p33FJ256GP506.h>
 #include <sask.h>
 #include <ex_sask_generic.h>
-#include <ex_sask_led.h>
+//#include <ex_sask_led.h>
 #include <dsp.h>
 #include <ADCChannelDrv.h>
 #include <OCPWMDrv.h>
-
-
-#include "..\inc\filter.h"
+#include "..\inc\frequency_processing.h"
 #include "..\inc\modulate.h"
-#include "..\inc\complexmultiply.h"
 #include "..\inc\transform.h"
 
 #define FRAME_SIZE 			128
-#define DEBUG
+
 //Allocate memory for input and output buffers
 fractional		adcBuffer		[ADC_CHANNEL_DMA_BUFSIZE] 	__attribute__((space(dma)));
 fractional		ocPWMBuffer		[OCPWM_DMA_BUFSIZE]		__attribute__((space(dma)));
@@ -40,18 +38,12 @@ fractional		ocPWMBuffer		[OCPWM_DMA_BUFSIZE]		__attribute__((space(dma)));
 //variables for FFT
 fractcomplex compx[FRAME_SIZE]__attribute__ ((space(ymemory),far));
 fractcomplex compX[FRAME_SIZE]__attribute__ ((space(ymemory),far));
-fractcomplex compXfiltered[FRAME_SIZE]__attribute__ ((space(ymemory),far));
-fractcomplex compXshifted[FRAME_SIZE]__attribute__ ((space(ymemory),far));
-fractional testSignal[FRAME_SIZE];
-
+fractional outputSignal[FRAME_SIZE];
 double compXfilteredAbs[FRAME_SIZE]__attribute__ ((space(ymemory),far));
-
 
 //variables for audio processing
 fractional		frctAudioIn			[FRAME_SIZE]__attribute__ ((space(xmemory),far));
-
 fractional		frctAudioOut		[FRAME_SIZE]__attribute__ ((space(xmemory),far));
-
 
 //Instantiate the drivers
 ADCChannelHandle adcChannelHandle;
@@ -61,75 +53,74 @@ OCPWMHandle 	ocPWMHandle;
 ADCChannelHandle *pADCChannelHandle 	= &adcChannelHandle;
 OCPWMHandle 	*pOCPWMHandle 		= &ocPWMHandle;
 
+/*
 float getFrequency(int samplingRate, int frameSize, int FFTPosition){
+	
 	float frequency = (samplingRate/2)*(FFTPosition/64);
 	return frequency; 
 }
-	float testFrequency = 0;
+*/
+float testFrequency = 0;
 	
 
 int main(void)
 {
+	/*local variables*/
 	int i;
-
-	int max;
 	int maxPosition=0;
+	float freq;
+	
+	/*initialise the board LEDs*/
 	ex_sask_init( );
 
-	//Initialise Audio input and output function
+	/*Initialise Audio input and output function*/
 	ADCChannelInit	(pADCChannelHandle,adcBuffer);			
 	OCPWMInit		(pOCPWMHandle,ocPWMBuffer);			
 
-	//Start Audio input and output function
+	/*Start Audio input and output function*/
 	ADCChannelStart	(pADCChannelHandle);
 	OCPWMStart		(pOCPWMHandle);	
 	
-	 testFrequency = 3000;
-	
-	
-   	max = 0;
-		maxPosition =0;
-		float freq;
-		
+	/*start processing loop*/	
 	while(1)
-	{   
-	
-	
-	   testFrequency = getFrequency(8000,FRAME_SIZE,20);
-	    
+	{   /*if S1 is pressed get the loudest pitch from the current frame and create signal*/			    
 		if(SWITCH_S1==0){
-		freq= 4000.0 *(maxPosition/64.0);
-			createSimpleSignal(freq, FRAME_SIZE, testSignal);
-			RED_LED=0;
+	
+		getFrequency(maxPosition, freq,FRAME_SIZE);
+		createSimpleSignal(freq, FRAME_SIZE, outputSignal);
+		RED_LED=0;
 			
 		}
+		/*if s1 is not pressed, set output signal to 0*/
 		else if (SWITCH_S1==1){
-			RED_LED=1;
 			for(i=0;i<FRAME_SIZE;i++){
-				testSignal[i] = 0;
+			outputSignal[i] = 0;
 			}
 		}
-		
-		//Wait till the ADC has a new frame available
-		while(ADCChannelIsBusy(pADCChannelHandle));
-		//Read in the Audio Samples from the ADC
-		ADCChannelRead	(pADCChannelHandle,frctAudioIn,FRAME_SIZE);
-		//work in the frequency domain
-		fourierTransform(FRAME_SIZE,compX,frctAudioIn);
-		//filterNegativeFreq(FRAME_SIZE,compXfiltered,compX);
-		
-		//take absolute value of the FFT result
-		for(i=1;i<FRAME_SIZE/2;i++){
-				compXfilteredAbs[i] = pow(compX[i].real,2) + pow(compX[i].imag,2);	
-		}	
-		
-		//find the peak frequency	
-		for(i = 0; i<FRAME_SIZE/2;i++){
-				if(compXfilteredAbs[i] > max){
-				max = compXfilteredAbs[i];
-				maxPosition = i;
-				}
+		/*if S2 is pressed double the max freq to play higher octave*/
+		else if (SWITCH_S2==0){
+			getFrequency(2*maxPosition,freq,FRAME_SIZE);
+			createSimpleSignal(freq, FRAME_SIZE, outputSignal);
+			}
+		/*if s2 is not pressed, set output signal to 0*/
+		else if (SWITCH_S2==1){
+			for(i=0;i<FRAME_SIZE;i++){
+				outputSignal[i] = 0;
+			}
 		}
+		/*Wait till the ADC has a new frame available*/
+		while(ADCChannelIsBusy(pADCChannelHandle));
+		/*Read in the Audio Samples from the ADC*/
+		ADCChannelRead	(pADCChannelHandle,frctAudioIn,FRAME_SIZE);
+		
+		/* take fourier transform of audio input frame*/
+		fourierTransform(FRAME_SIZE,compX,frctAudioIn);
+		
+		//take the squared absolute value of the FFT result ( no need to square root)*/
+		getAbsSqrd(compX,compXfilteredAbs,FRAME_SIZE);
+		//find the peak frequency	
+		findPeakFrequency(compXfilteredAbs,maxPosition,FRAME_SIZE);
+	
 		//determine which led to display based on peak fequency
 		if(max< 100){
 			GREEN_LED=1;
@@ -158,15 +149,10 @@ int main(void)
 					YELLOW_LED=1;	
 		}
 		
-		
-		
-		//	shiftFreqSpectrum(FRAME_SIZE,iShiftAmount,compXshifted,compXfiltered);
-		inverseFourierTransform(FRAME_SIZE,frctAudioOut,compXshifted);
-					
 		//Wait till the OC is available for a new frame
 		while(OCPWMIsBusy(pOCPWMHandle));	
 		//Write the real part of the frequency shifted complex audio signal to the output
-		OCPWMWrite (pOCPWMHandle,testSignal,FRAME_SIZE);
+		OCPWMWrite (pOCPWMHandle,outputSignal,FRAME_SIZE);
 		
 	}
 }
